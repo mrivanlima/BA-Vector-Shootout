@@ -1,0 +1,5 @@
+Faker==22.5.0
+pymssql
+psycopg2-binary>=2.9.10
+numpy==1.26.3
+python-dotenv

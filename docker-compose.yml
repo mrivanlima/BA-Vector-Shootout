@@ -10,12 +10,18 @@ services:
       - ACCEPT_EULA=${ACCEPT_EULA}
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
-      - "1435:1433"  # Mapped to 1435 to avoid conflicts
+      - "1435:1433"
     volumes:
       - sql2025_data:/var/opt/mssql
     networks:
       - shootout-net
     restart: always
+    healthcheck:
+      # Verifies the engine is actually responding to queries
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${MSSQL_SA_PASSWORD} -Q 'SELECT 1' -C"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # -----------------------------
   # CONTESTANT 2: SQL Server 2022 (The "Hacks")
@@ -28,18 +34,23 @@ services:
       - ACCEPT_EULA=${ACCEPT_EULA}
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
-      - "1432:1433"  # Mapped to 1432
+      - "1432:1433"
     volumes:
       - sql2022_data:/var/opt/mssql
     networks:
       - shootout-net
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${MSSQL_SA_PASSWORD} -Q 'SELECT 1' -C"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # -----------------------------
   # CONTESTANT 3: PostgreSQL 17 (The Sidecar)
   # -----------------------------
   postgres:
-    image: pgvector/pgvector:pg17  # Standard Postgres + Vector Extension pre-installed
+    image: pgvector/pgvector:pg17
     container_name: dba-postgres
     hostname: postgres
     environment:
@@ -53,6 +64,31 @@ services:
     networks:
       - shootout-net
     restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # -----------------------------
+  # THE ORCHESTRATOR: Python Ingest Engine
+  # -----------------------------
+  ingest-engine:
+    build: .
+    container_name: dba-ingest
+    # This prevents the script from crashing while DBs are waking up
+    depends_on:
+      sql2025:
+        condition: service_healthy
+      sql2022:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    volumes:
+      - .:/app  # Live-code mapping for development
+    networks:
+      - shootout-net
 
 # -----------------------------
 # Shared Infrastructure
