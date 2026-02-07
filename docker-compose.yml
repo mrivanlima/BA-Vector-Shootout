@@ -1,0 +1,67 @@
+services:
+  # -----------------------------
+  # CONTESTANT 1: SQL Server 2025 (Native Vectors)
+  # -----------------------------
+  sql2025:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: dba-sql2025
+    hostname: sql2025
+    environment:
+      - ACCEPT_EULA=${ACCEPT_EULA}
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
+    ports:
+      - "1435:1433"  # Mapped to 1435 to avoid conflicts
+    volumes:
+      - sql2025_data:/var/opt/mssql
+    networks:
+      - shootout-net
+    restart: always
+
+  # -----------------------------
+  # CONTESTANT 2: SQL Server 2022 (The "Hacks")
+  # -----------------------------
+  sql2022:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dba-sql2022
+    hostname: sql2022
+    environment:
+      - ACCEPT_EULA=${ACCEPT_EULA}
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
+    ports:
+      - "1432:1433"  # Mapped to 1432
+    volumes:
+      - sql2022_data:/var/opt/mssql
+    networks:
+      - shootout-net
+    restart: always
+
+  # -----------------------------
+  # CONTESTANT 3: PostgreSQL 17 (The Sidecar)
+  # -----------------------------
+  postgres:
+    image: pgvector/pgvector:pg17  # Standard Postgres + Vector Extension pre-installed
+    container_name: dba-postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - shootout-net
+    restart: always
+
+# -----------------------------
+# Shared Infrastructure
+# -----------------------------
+networks:
+  shootout-net:
+    driver: bridge
+
+volumes:
+  sql2025_data:
+  sql2022_data:
+  pg_data:
