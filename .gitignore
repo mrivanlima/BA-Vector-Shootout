@@ -1,0 +1,19 @@
+# Security - NEVER commit these
+.env
+.env.local
+
+# Python - Junk files
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Docker - Junk files
+.docker/
+
+# OS - Junk files
+.DS_Store
+Thumbs.db
+
+# VS Code - Settings
+.vscode/
